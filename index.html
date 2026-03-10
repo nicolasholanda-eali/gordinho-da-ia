@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gordinho da IA — Comunidade Claude</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ── GHL FULL-WIDTH BREAKOUT ── */
+    .ghl-wrapper {
+      width: 100vw;
+      position: relative;
+      left: 50%;
+      transform: translateX(-50%);
+      overflow-x: hidden;
+    }
+
+    /* ── TOKENS ── */
+    :root {
+      --copper:        #C4855A;
+      --copper-light:  #D9A07A;
+      --copper-dark:   #9A6032;
+      --copper-glow:   rgba(196, 133, 90, 0.6);
+      --silver:        #C8C8C8;
+      --silver-dark:   #787878;
+      --bg:            #080808;
+      --bg-card:       #111111;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: #fff;
+      font-family: 'Inter', sans-serif;
+      cursor: none;
+      overflow-x: hidden;
+    }
+
+    /* ── CUSTOM CURSOR ── */
+    #cur {
+      width: 10px; height: 10px;
+      background: var(--copper);
+      border-radius: 50%;
+      position: fixed;
+      pointer-events: none;
+      z-index: 9999;
+      transition: transform .15s ease, width .2s ease, height .2s ease;
+    }
+    #cur-ring {
+      width: 38px; height: 38px;
+      border: 1.5px solid rgba(196,133,90,.5);
+      border-radius: 50%;
+      position: fixed;
+      pointer-events: none;
+      z-index: 9998;
+    }
+    body:has(button:hover) #cur,
+    body:has(a:hover) #cur         { transform: scale(2.5); background: var(--copper-light); }
+    body:has(.feat-card:hover) #cur{ transform: scale(1.8); }
+
+    /* ── SCROLL PROGRESS ── */
+    #spbar {
+      position: fixed; top: 0; left: 0; height: 2px; width: 0%;
+      background: linear-gradient(90deg, var(--copper-dark), var(--copper-light));
+      z-index: 1000;
+      transition: width .08s linear;
+    }
+
+    /* ── METALLIC TEXT ── */
+    .t-copper {
+      background: linear-gradient(135deg,
+        #9A6032 0%, #C4855A 25%, #EAB990 50%, #C4855A 75%, #9A6032 100%);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer 3.5s linear infinite;
+    }
+    .t-silver {
+      background: linear-gradient(135deg,
+        #787878 0%, #E0E0E0 40%, #C8C8C8 60%, #787878 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    @keyframes shimmer {
+      0%   { background-position: 0% center; }
+      100% { background-position: -200% center; }
+    }
+
+    /* ── FADE-UP ── */
+    .fu {
+      opacity: 0;
+      transform: translateY(36px);
+      transition: opacity .8s cubic-bezier(.22,1,.36,1),
+                  transform .8s cubic-bezier(.22,1,.36,1);
+    }
+    .fu.vis              { opacity: 1; transform: none; }
+    .fu.d1               { transition-delay: .1s; }
+    .fu.d2               { transition-delay: .2s; }
+    .fu.d3               { transition-delay: .32s; }
+    .fu.d4               { transition-delay: .45s; }
+    .fu.d5               { transition-delay: .6s; }
+
+    /* ── HERO ── */
+    #hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 60%, #1c0d04 0%, transparent 70%),
+        #080808;
+    }
+
+    /* ── CANVAS BACKGROUND ── */
+    #bgc {
+      position: absolute;
+      inset: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+    }
+
+    /* ── LOGO SVG ── */
+    @keyframes logoGlow {
+      0%, 100% { filter: drop-shadow(0 0 8px var(--copper-glow)); }
+      50%       { filter: drop-shadow(0 0 28px var(--copper-glow)) drop-shadow(0 0 50px rgba(196,133,90,.3)); }
+    }
+    .logo-svg { animation: logoGlow 2.4s ease-in-out infinite; }
+
+    @keyframes spinAst {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+    .ast-spin {
+      transform-origin: 50px 50px;
+      animation: spinAst 8s linear infinite;
+    }
+
+    /* ── BADGE ── */
+    .badge-tag {
+      background: linear-gradient(90deg, rgba(196,133,90,.12), rgba(196,133,90,.04));
+      border: 1px solid rgba(196,133,90,.25);
+      color: var(--copper-light);
+      border-radius: 999px;
+      padding: .28rem 1rem;
+      font-size: .72rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+    }
+    .badge-dot {
+      width: 6px; height: 6px;
+      background: var(--copper);
+      border-radius: 50%;
+      animation: bDot 1.8s ease-in-out infinite;
+    }
+    @keyframes bDot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: .4; transform: scale(.6); }
+    }
+
+    /* ── CTA BUTTON ── */
+    .btn-main {
+      position: relative;
+      background: linear-gradient(135deg, #B87244, #C4855A, #D9A07A, #C4855A, #B87244);
+      background-size: 250% 100%;
+      color: #fff;
+      font-weight: 700;
+      letter-spacing: .06em;
+      border-radius: 999px;
+      overflow: hidden;
+      border: none;
+      transition: background-position .5s ease, transform .25s ease, box-shadow .25s ease;
+      animation: btnPulse 2.2s ease-in-out infinite;
+    }
+    .btn-main::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent 20%, rgba(255,255,255,.18), transparent 80%);
+      transform: translateX(-100%);
+      transition: transform .55s ease;
+    }
+    .btn-main:hover {
+      background-position: 100% 0;
+      transform: translateY(-3px);
+      box-shadow: 0 20px 48px rgba(196,133,90,.45);
+      animation: none;
+    }
+    .btn-main:hover::after { transform: translateX(100%); }
+
+    @keyframes btnPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(196,133,90,.55); }
+      60%       { box-shadow: 0 0 0 16px rgba(196,133,90,0); }
+    }
+
+    .btn-ghost {
+      border: 1px solid rgba(196,133,90,.25);
+      color: var(--silver-dark);
+      border-radius: 999px;
+      background: transparent;
+      transition: all .3s ease;
+      font-weight: 500;
+      letter-spacing: .04em;
+    }
+    .btn-ghost:hover {
+      border-color: rgba(196,133,90,.6);
+      color: var(--copper-light);
+      background: rgba(196,133,90,.06);
+    }
+
+    /* ── SCROLL ARROW ── */
+    @keyframes arrowBounce {
+      0%, 100% { transform: translateY(0) translateX(-50%); opacity: .7; }
+      50%       { transform: translateY(10px) translateX(-50%); opacity: .3; }
+    }
+    .scroll-arr {
+      position: absolute; bottom: 2.2rem; left: 50%;
+      animation: arrowBounce 2s ease-in-out infinite;
+      cursor: pointer;
+    }
+
+    /* ── DIVIDER ── */
+    .div-copper {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(196,133,90,.45), transparent);
+    }
+
+    /* ── SECTION 2 ── */
+    #s2 {
+      background:
+        radial-gradient(ellipse 60% 50% at 15% 85%, rgba(28,13,4,.8), transparent),
+        radial-gradient(ellipse 50% 40% at 85% 15%, rgba(10,20,4,.5), transparent),
+        #080808;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* ── FEATURE CARDS ── */
+    .feat-card {
+      background: rgba(196,133,90,.03);
+      border: 1px solid rgba(196,133,90,.1);
+      border-radius: 1.25rem;
+      padding: 2rem;
+      position: relative;
+      overflow: hidden;
+      transition: all .4s cubic-bezier(.23,1,.32,1);
+    }
+    .feat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(196,133,90,.6), transparent);
+      transform: scaleX(0);
+      transition: transform .4s ease;
+    }
+    .feat-card:hover {
+      background: rgba(196,133,90,.07);
+      border-color: rgba(196,133,90,.3);
+      transform: translateY(-6px) perspective(800px) rotateX(1deg);
+      box-shadow: 0 24px 56px rgba(196,133,90,.12), 0 0 0 1px rgba(196,133,90,.15);
+    }
+    .feat-card:hover::before { transform: scaleX(1); }
+
+    /* Blur siblings on hover */
+    .cards-grid:hover .feat-card          { filter: blur(1.5px); opacity: .45; }
+    .cards-grid:hover .feat-card:hover    { filter: none; opacity: 1; }
+
+    .feat-icon {
+      width: 48px; height: 48px;
+      background: linear-gradient(135deg, rgba(196,133,90,.18), rgba(196,133,90,.04));
+      border: 1px solid rgba(196,133,90,.2);
+      border-radius: .75rem;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 1.2rem;
+      font-size: 1.4rem;
+    }
+    .feat-arrow {
+      color: var(--copper);
+      font-size: .8rem;
+      letter-spacing: .08em;
+      margin-top: 1.4rem;
+      display: flex; align-items: center; gap: .4rem;
+      transition: gap .25s ease;
+    }
+    .feat-card:hover .feat-arrow { gap: .75rem; }
+
+    /* ── GLASS CTA BLOCK ── */
+    .glass-cta {
+      background: rgba(196,133,90,.04);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(196,133,90,.15);
+      border-radius: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .glass-cta::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(196,133,90,.7), transparent);
+    }
+
+    /* ── FLOAT ── */
+    @keyframes floatEl {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-12px); }
+    }
+    .float { animation: floatEl 3.2s ease-in-out infinite; }
+
+    /* ── TYPEWRITER ── */
+    .cursor-blink {
+      display: inline-block;
+      width: 2.5px; height: .85em;
+      background: var(--copper);
+      margin-left: 3px;
+      vertical-align: middle;
+      border-radius: 1px;
+      animation: cblink .65s step-end infinite;
+    }
+    @keyframes cblink { 50% { opacity: 0; } }
+
+    /* ── COUNTER ── */
+    .cnt { font-family: 'Playfair Display', serif; }
+
+    /* ── DECO BRACES ── */
+    .deco-brace {
+      position: absolute;
+      font-family: 'Space Mono', monospace;
+      font-size: clamp(100px, 18vw, 280px);
+      line-height: 1;
+      pointer-events: none;
+      user-select: none;
+      color: rgba(196,133,90,.04);
+    }
+
+    /* ── GLOW ORBS ── */
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+    }
+
+    /* ── STAT ROW ── */
+    .stat-sep {
+      width: 1px; height: 32px;
+      background: rgba(196,133,90,.2);
+    }
+
+    /* ── NOISE TEXTURE ── */
+    .noise::after {
+      content: '';
+      position: absolute; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      opacity: .025; pointer-events: none; z-index: 1;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      .stat-sep { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Cursor -->
+  <div id="cur"></div>
+  <div id="cur-ring"></div>
+
+  <!-- Scroll progress bar -->
+  <div id="spbar"></div>
+
+  <div class="ghl-wrapper">
+
+    <!-- ═══════════════════════════════════════
+         FOLD 1 — HERO
+    ═══════════════════════════════════════ -->
+    <section id="hero" class="noise">
+      <canvas id="bgc"></canvas>
+
+      <!-- Decorative braces -->
+      <div class="deco-brace" style="top: 10%; left: -2%;">{</div>
+      <div class="deco-brace" style="bottom: 5%; right: -2%;">}</div>
+
+      <!-- Glow orbs -->
+      <div class="orb" style="width:500px;height:500px;background:radial-gradient(circle,rgba(196,133,90,.12),transparent 70%);top:10%;left:30%;"></div>
+      <div class="orb" style="width:300px;height:300px;background:radial-gradient(circle,rgba(200,200,200,.04),transparent 70%);bottom:20%;right:20%;"></div>
+
+      <div class="w-full max-w-4xl mx-auto px-6 md:px-12 text-center relative z-10 py-20">
+
+        <!-- Badge -->
+        <div class="fu mb-8">
+          <span class="badge-tag">
+            <span class="badge-dot"></span>
+            Comunidade ativa · 2.847 membros
+          </span>
+        </div>
+
+        <!-- Logo SVG -->
+        <div class="fu d1 flex justify-center mb-6">
+          <svg class="logo-svg" width="110" height="110" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="cg" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+                <stop offset="0%"   stop-color="#9A6032"/>
+                <stop offset="35%"  stop-color="#C4855A"/>
+                <stop offset="60%"  stop-color="#EAB990"/>
+                <stop offset="100%" stop-color="#C4855A"/>
+              </linearGradient>
+              <linearGradient id="sg" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+                <stop offset="0%"  stop-color="#666"/>
+                <stop offset="50%" stop-color="#E0E0E0"/>
+                <stop offset="100%" stop-color="#999"/>
+              </linearGradient>
+            </defs>
+            <!-- Outer silver ring -->
+            <circle cx="50" cy="50" r="48" stroke="url(#sg)" stroke-width="1.2" opacity=".35"/>
+            <!-- Inner copper ring -->
+            <circle cx="50" cy="50" r="41" stroke="url(#cg)" stroke-width=".6" opacity=".25"/>
+            <!-- {  } braces -->
+            <text x="8"  y="66" font-size="50" font-family="serif" fill="url(#cg)" font-weight="bold">{</text>
+            <text x="60" y="66" font-size="50" font-family="serif" fill="url(#cg)" font-weight="bold">}</text>
+            <!-- Asterisk (spinning) -->
+            <text x="38" y="62" class="ast-spin" font-size="22" font-family="serif" fill="url(#cg)" font-weight="700">*</text>
+          </svg>
+        </div>
+
+        <!-- Main title -->
+        <h1 class="fu d2" style="font-family:'Playfair Display',serif; font-size:clamp(3rem,10vw,7rem); font-weight:900; line-height:1; letter-spacing:-.02em; margin-bottom:.2rem;">
+          <span class="t-copper">GORDINHO</span>
+        </h1>
+        <h2 class="fu d2 t-silver" style="font-family:'Space Mono',monospace; font-size:clamp(1.2rem,4vw,2.6rem); font-weight:700; letter-spacing:.35em; margin-bottom:.5rem;">
+          DA IA
+        </h2>
+
+        <!-- Sub-label -->
+        <p class="fu d3" style="font-size:.7rem; letter-spacing:.45em; text-transform:uppercase; color:#555; margin-bottom:1.4rem;">
+          Comunidade Claude &nbsp;·&nbsp; Por Daniel Feitosa
+        </p>
+
+        <!-- Divider line -->
+        <div class="fu d3 div-copper mx-auto mb-8" style="width:5rem;"></div>
+
+        <!-- Typewriter headline -->
+        <div class="fu d4" style="min-height:3.5rem; margin-bottom:.75rem;">
+          <span style="font-size:clamp(1.1rem,2.6vw,1.6rem); color:#ccc; font-weight:300; letter-spacing:.01em;" id="tw"></span><span class="cursor-blink"></span>
+        </div>
+
+        <p class="fu d4" style="color:#555; font-size:1rem; line-height:1.8; max-width:560px; margin:0 auto 2.5rem;">
+          Aprenda Claude de verdade, automatize processos e entre para a elite que usa IA antes que todo mundo entenda o que você já sabe.
+        </p>
+
+        <!-- Stats -->
+        <div class="fu d4 flex items-center justify-center gap-6 md:gap-10 mb-10 flex-wrap">
+          <div class="text-center">
+            <div class="cnt text-3xl font-bold t-copper" data-target="2847" data-suffix="+">0+</div>
+            <div style="font-size:.65rem; letter-spacing:.2em; color:#444; margin-top:.2rem;">MEMBROS</div>
+          </div>
+          <div class="stat-sep"></div>
+          <div class="text-center">
+            <div class="cnt text-3xl font-bold t-copper" data-target="150" data-suffix="+">0+</div>
+            <div style="font-size:.65rem; letter-spacing:.2em; color:#444; margin-top:.2rem;">PROMPTS</div>
+          </div>
+          <div class="stat-sep"></div>
+          <div class="text-center">
+            <div class="cnt text-3xl font-bold t-copper" data-target="98" data-suffix="%">0%</div>
+            <div style="font-size:.65rem; letter-spacing:.2em; color:#444; margin-top:.2rem;">SATISFAÇÃO</div>
+          </div>
+        </div>
+
+        <!-- CTA buttons -->
+        <div class="fu d5 flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <button class="btn-main px-10 py-4 text-base" id="cta1">
+            Quero Entrar na Comunidade →
+          </button>
+          <button class="btn-ghost px-8 py-4 text-sm" id="ctaScroll">
+            Conhecer mais
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Scroll arrow -->
+      <div class="scroll-arr" id="scrollArr">
+        <svg width="18" height="22" viewBox="0 0 18 22" fill="none">
+          <path d="M9 0v18M2 11l7 7 7-7" stroke="rgba(196,133,90,.4)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </section>
+
+    <!-- Fold divider -->
+    <div class="div-copper"></div>
+
+
+    <!-- ═══════════════════════════════════════
+         FOLD 2 — FEATURES + CTA
+    ═══════════════════════════════════════ -->
+    <section id="s2" class="py-24 md:py-36">
+
+      <!-- Bg glow orbs -->
+      <div class="orb" style="width:600px;height:600px;background:radial-gradient(circle,rgba(196,133,90,.07),transparent 65%);top:-100px;left:-100px;pointer-events:none;"></div>
+      <div class="orb" style="width:400px;height:400px;background:radial-gradient(circle,rgba(196,133,90,.06),transparent 65%);bottom:-80px;right:-80px;pointer-events:none;"></div>
+
+      <div class="w-full max-w-6xl mx-auto px-6 md:px-12 relative z-10">
+
+        <!-- Header -->
+        <div class="text-center mb-16">
+          <div class="fu mb-5">
+            <span class="badge-tag">
+              <span style="font-family:'Space Mono',monospace; color:var(--copper);">{*}</span>
+              O que você encontra aqui
+            </span>
+          </div>
+          <h2 class="fu d1" style="font-family:'Playfair Display',serif; font-size:clamp(2rem,5vw,3.5rem); font-weight:800; line-height:1.15; margin-bottom:1rem;">
+            Tudo para você dominar<br>
+            <span class="t-copper">o Claude de verdade</span>
+          </h2>
+          <p class="fu d2" style="color:#4a4a4a; font-size:1rem; max-width:480px; margin:0 auto; line-height:1.75;">
+            Conteúdo prático, comunidade ativa e o melhor professor de Claude do Brasil.
+          </p>
+        </div>
+
+        <!-- Cards grid -->
+        <div class="cards-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-20">
+
+          <div class="feat-card fu">
+            <div class="feat-icon">⚡</div>
+            <h3 style="font-size:1.1rem; font-weight:700; margin-bottom:.5rem;">Prompts de Elite</h3>
+            <p style="color:#4a4a4a; font-size:.88rem; line-height:1.7;">Biblioteca com +150 prompts testados e validados. Do básico ao avançado, para qualquer caso de uso.</p>
+            <div class="feat-arrow">
+              <span>Acessar biblioteca</span>
+              <span>→</span>
+            </div>
+          </div>
+
+          <div class="feat-card fu d1">
+            <div class="feat-icon">🤖</div>
+            <h3 style="font-size:1.1rem; font-weight:700; margin-bottom:.5rem;">Automações com IA</h3>
+            <p style="color:#4a4a4a; font-size:.88rem; line-height:1.7;">Workflows prontos para automatizar tarefas repetitivas. Copy, análise, código, estratégia e mais.</p>
+            <div class="feat-arrow">
+              <span>Ver automações</span>
+              <span>→</span>
+            </div>
+          </div>
+
+          <div class="feat-card fu d2">
+            <div class="feat-icon">🧠</div>
+            <h3 style="font-size:1.1rem; font-weight:700; margin-bottom:.5rem;">Mentalidade IA</h3>
+            <p style="color:#4a4a4a; font-size:.88rem; line-height:1.7;">Frameworks exclusivos de Daniel Feitosa para você pensar e trabalhar junto com a IA de forma estratégica.</p>
+            <div class="feat-arrow">
+              <span>Aprender frameworks</span>
+              <span>→</span>
+            </div>
+          </div>
+
+          <div class="feat-card fu d1">
+            <div class="feat-icon">👥</div>
+            <h3 style="font-size:1.1rem; font-weight:700; margin-bottom:.5rem;">Comunidade Ativa</h3>
+            <p style="color:#4a4a4a; font-size:.88rem; line-height:1.7;">+2.800 pessoas trocando descobertas, dicas e experiências com Claude todos os dias. Sem ruído.</p>
+            <div class="feat-arrow">
+              <span>Entrar na comunidade</span>
+              <span>→</span>
+            </div>
+          </div>
+
+          <div class="feat-card fu d2" style="border-color:rgba(196,133,90,.22); background:rgba(196,133,90,.05);">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <div class="feat-icon" style="margin-bottom:1.2rem;">✦</div>
+              <span class="badge-tag" style="font-size:.62rem; padding:.18rem .7rem;">Exclusivo</span>
+            </div>
+            <h3 style="font-size:1.1rem; font-weight:700; margin-bottom:.5rem;">Aulas ao Vivo</h3>
+            <p style="color:#4a4a4a; font-size:.88rem; line-height:1.7;">Lives semanais com Daniel. Novidades do Claude, técnicas avançadas e sessão de perguntas e respostas.</p>
+            <div class="feat-arrow">
+              <span>Ver agenda</span>
+              <span>→</span>
+            </div>
+          </div>
+
+          <div class="feat-card fu d3">
+            <div class="feat-icon">📈</div>
+            <h3 style="font-size:1.1rem; font-weight:700; margin-bottom:.5rem;">Cases Reais</h3>
+            <p style="color:#4a4a4a; font-size:.88rem; line-height:1.7;">Veja como membros estão usando Claude para escalar negócios, criar conteúdo e economizar horas por semana.</p>
+            <div class="feat-arrow">
+              <span>Ver cases</span>
+              <span>→</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- CTA Final Block -->
+        <div class="fu max-w-2xl mx-auto">
+          <div class="glass-cta p-10 md:p-16 text-center">
+
+            <!-- Inner glow -->
+            <div style="position:absolute;inset:0;background:radial-gradient(ellipse 80% 50% at 50% 0%,rgba(196,133,90,.1),transparent 60%);pointer-events:none;"></div>
+
+            <div class="float mb-6">
+              <span class="badge-tag">
+                <span style="color:var(--copper);">✦</span>
+                Vagas limitadas
+              </span>
+            </div>
+
+            <h3 class="fu" style="font-family:'Playfair Display',serif; font-size:clamp(1.8rem,4.5vw,3rem); font-weight:800; line-height:1.2; margin-bottom:1.2rem;">
+              Entre para a elite<br>
+              <span class="t-copper">que já chegou lá</span>
+            </h3>
+
+            <p class="fu d1" style="color:#484848; font-size:.98rem; line-height:1.8; margin-bottom:2.5rem; max-width:440px; margin-left:auto; margin-right:auto;">
+              Enquanto a maioria ainda tenta entender o ChatGPT,<br class="hidden md:block"/>
+              você já vai estar dominando Claude com a comunidade certa.
+            </p>
+
+            <div class="fu d2">
+              <button class="btn-main px-12 py-5 text-lg w-full md:w-auto">
+                Quero Fazer Parte Agora →
+              </button>
+            </div>
+
+            <p class="fu d3" style="color:#333; font-size:.7rem; letter-spacing:.18em; text-transform:uppercase; margin-top:1.4rem;">
+              Por Daniel Feitosa · Comunidade Claude
+            </p>
+
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer style="border-top:1px solid rgba(196,133,90,.08); padding:2rem 1.5rem; text-align:center;">
+      <p style="color:#2a2a2a; font-size:.75rem; letter-spacing:.14em; text-transform:uppercase;">
+        © 2025 Gordinho da IA · Comunidade Claude · Por Daniel Feitosa
+      </p>
+    </footer>
+
+  </div><!-- /ghl-wrapper -->
+
+
+  <script>
+  /* ══════════════════════════════════
+     CURSOR
+  ══════════════════════════════════ */
+  const cur = document.getElementById('cur');
+  const ring = document.getElementById('cur-ring');
+  let mx = 0, my = 0, rx = 0, ry = 0;
+
+  document.addEventListener('mousemove', e => {
+    mx = e.clientX; my = e.clientY;
+    cur.style.left  = (mx - 5) + 'px';
+    cur.style.top   = (my - 5) + 'px';
+  });
+
+  (function animateRing() {
+    rx += (mx - rx - 19) * .14;
+    ry += (my - ry - 19) * .14;
+    ring.style.left = rx + 'px';
+    ring.style.top  = ry + 'px';
+    requestAnimationFrame(animateRing);
+  })();
+
+  document.querySelectorAll('button, a, .feat-card').forEach(el => {
+    el.addEventListener('mouseenter', () => {
+      ring.style.width  = '60px';
+      ring.style.height = '60px';
+      ring.style.borderColor = 'rgba(196,133,90,.7)';
+    });
+    el.addEventListener('mouseleave', () => {
+      ring.style.width  = '38px';
+      ring.style.height = '38px';
+      ring.style.borderColor = 'rgba(196,133,90,.5)';
+    });
+  });
+
+  /* ══════════════════════════════════
+     SCROLL PROGRESS
+  ══════════════════════════════════ */
+  const spbar = document.getElementById('spbar');
+  window.addEventListener('scroll', () => {
+    const pct = window.scrollY / (document.documentElement.scrollHeight - window.innerHeight) * 100;
+    spbar.style.width = pct + '%';
+  }, { passive: true });
+
+  /* ══════════════════════════════════
+     NEURAL NETWORK CANVAS
+  ══════════════════════════════════ */
+  const canvas = document.getElementById('bgc');
+  const ctx    = canvas.getContext('2d');
+
+  function resizeC() {
+    canvas.width  = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+  }
+  resizeC();
+  window.addEventListener('resize', resizeC);
+
+  const N = 65, DIST = 145;
+  const nodes = Array.from({ length: N }, () => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    vx: (Math.random() - .5) * .55,
+    vy: (Math.random() - .5) * .55,
+    r:  Math.random() * 1.8 + .8,
+  }));
+
+  let pmx = -9999, pmy = -9999;
+  document.addEventListener('mousemove', e => { pmx = e.clientX; pmy = e.clientY; });
+
+  (function drawCanvas() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    nodes.forEach(n => {
+      // Mouse repel
+      const ddx = n.x - pmx, ddy = n.y - pmy;
+      const dd = Math.hypot(ddx, ddy);
+      if (dd < 110) {
+        n.vx += (ddx / dd) * .18;
+        n.vy += (ddy / dd) * .18;
+      }
+      // Clamp speed
+      const sp = Math.hypot(n.vx, n.vy);
+      if (sp > 2) { n.vx *= 1.8 / sp; n.vy *= 1.8 / sp; }
+
+      n.x += n.vx; n.y += n.vy;
+      if (n.x < 0 || n.x > canvas.width)  n.vx *= -1;
+      if (n.y < 0 || n.y > canvas.height) n.vy *= -1;
+    });
+
+    // Edges
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const dx = nodes[i].x - nodes[j].x;
+        const dy = nodes[i].y - nodes[j].y;
+        const d  = Math.hypot(dx, dy);
+        if (d < DIST) {
+          const a = (1 - d / DIST) * .18;
+          ctx.strokeStyle = `rgba(196,133,90,${a})`;
+          ctx.lineWidth   = .6;
+          ctx.beginPath();
+          ctx.moveTo(nodes[i].x, nodes[i].y);
+          ctx.lineTo(nodes[j].x, nodes[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // Dots
+    nodes.forEach(n => {
+      ctx.fillStyle = 'rgba(196,133,90,.45)';
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    requestAnimationFrame(drawCanvas);
+  })();
+
+  /* ══════════════════════════════════
+     INTERSECTION OBSERVER — FADE-UP
+  ══════════════════════════════════ */
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('vis'); });
+  }, { threshold: .08, rootMargin: '0px 0px -50px 0px' });
+
+  document.querySelectorAll('.fu').forEach(el => obs.observe(el));
+
+  // Hero fires immediately
+  setTimeout(() => {
+    document.querySelectorAll('#hero .fu').forEach(el => el.classList.add('vis'));
+  }, 80);
+
+  /* ══════════════════════════════════
+     COUNTERS
+  ══════════════════════════════════ */
+  const cntObs = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const el  = entry.target;
+      const tgt = +el.dataset.target;
+      const sfx = el.dataset.suffix || '';
+      let cur   = 0;
+      const step = tgt / 90;
+      (function tick() {
+        cur += step;
+        if (cur >= tgt) { el.textContent = tgt + sfx; cntObs.unobserve(el); return; }
+        el.textContent = Math.floor(cur) + sfx;
+        requestAnimationFrame(tick);
+      })();
+    });
+  }, { threshold: .6 });
+
+  document.querySelectorAll('[data-target]').forEach(el => cntObs.observe(el));
+
+  /* ══════════════════════════════════
+     TYPEWRITER
+  ══════════════════════════════════ */
+  const phrases = [
+    'A comunidade que domina a IA',
+    'Prompts que realmente funcionam',
+    'Automações que salvam horas',
+    'O Claude do jeito certo',
+    'IA aplicada de verdade',
+  ];
+  const twEl = document.getElementById('tw');
+  let pi = 0, ci = 0, del = false;
+
+  function typeLoop() {
+    const p = phrases[pi];
+    del ? ci-- : ci++;
+    twEl.textContent = p.substring(0, ci);
+
+    if (!del && ci === p.length) { del = true; setTimeout(typeLoop, 1800); return; }
+    if (del && ci === 0) { del = false; pi = (pi + 1) % phrases.length; }
+
+    setTimeout(typeLoop, del ? 45 : 75);
+  }
+  setTimeout(typeLoop, 900);
+
+  /* ══════════════════════════════════
+     MAGNETIC BUTTONS
+  ══════════════════════════════════ */
+  document.querySelectorAll('.btn-main, .btn-ghost').forEach(btn => {
+    btn.addEventListener('mousemove', e => {
+      const r = btn.getBoundingClientRect();
+      const x = (e.clientX - r.left - r.width  / 2) * .22;
+      const y = (e.clientY - r.top  - r.height / 2) * .22;
+      btn.style.transform = `translate(${x}px, ${y - 3}px)`;
+    });
+    btn.addEventListener('mouseleave', () => {
+      btn.style.transform = '';
+    });
+  });
+
+  /* ══════════════════════════════════
+     3D TILT on feature cards
+  ══════════════════════════════════ */
+  document.querySelectorAll('.feat-card').forEach(card => {
+    card.addEventListener('mousemove', e => {
+      const r = card.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width  - .5;
+      const y = (e.clientY - r.top)  / r.height - .5;
+      card.style.transform =
+        `perspective(900px) rotateX(${y * -7}deg) rotateY(${x * 7}deg) translateY(-6px)`;
+    });
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = '';
+    });
+  });
+
+  /* ══════════════════════════════════
+     SMOOTH SCROLL
+  ══════════════════════════════════ */
+  function scrollTo(y, ms = 650) {
+    const start = window.scrollY, diff = y - start;
+    let t0 = null;
+    (function step(ts) {
+      if (!t0) t0 = ts;
+      const p = Math.min((ts - t0) / ms, 1);
+      const e = p < .5 ? 4 * p ** 3 : 1 - (-2 * p + 2) ** 3 / 2;
+      window.scrollTo(0, start + diff * e);
+      if (p < 1) requestAnimationFrame(step);
+    })(performance.now());
+  }
+
+  document.getElementById('scrollArr')?.addEventListener('click',  () => scrollTo(document.getElementById('s2').offsetTop));
+  document.getElementById('ctaScroll')?.addEventListener('click',  () => scrollTo(document.getElementById('s2').offsetTop));
+
+  </script>
+</body>
+</html>
